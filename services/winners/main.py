@@ -11,6 +11,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.models import Winner, AwardCategory
 from shared.utils import generate_id, get_current_timestamp
+from shared.audit_utils import audit_winner_calculated
 
 app = FastAPI(title="Winners Service", version="1.0.0")
 
@@ -83,6 +84,17 @@ async def calculate_winners():
                 
                 winners_db[winner.id] = winner
                 new_winners.append(winner)
+                
+                # Emit audit event
+                try:
+                    await audit_winner_calculated(
+                        category=winner.category.value,
+                        winner_id=winner.id,
+                        total_votes=winner.total_votes
+                    )
+                except Exception as e:
+                    # Don't let audit failures break the winner calculation
+                    print(f"Failed to emit audit event: {e}")
         
         return {"message": f"Calculated {len(new_winners)} winners", "winners": new_winners}
         

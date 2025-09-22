@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.models import Notification
 from shared.utils import generate_id, get_current_timestamp
+from shared.audit_utils import audit_notification_sent
 
 app = FastAPI(title="Notifications Service", version="1.0.0")
 
@@ -67,6 +68,18 @@ Your award ceremony will be held at Chili's at 7 PM. Drinks are on Michael Scott
             
             notifications_db[notification.id] = notification
             new_notifications.append(notification)
+            
+            # Emit audit event
+            try:
+                await audit_notification_sent(
+                    winner_id=notification.winner_id,
+                    employee_id=notification.employee_id,
+                    employee_name=notification.employee_name,
+                    notification_id=notification.id
+                )
+            except Exception as e:
+                # Don't let audit failures break the notification
+                print(f"Failed to emit audit event: {e}")
         
         return {
             "message": f"Sent {len(new_notifications)} notifications", 

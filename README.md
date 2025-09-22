@@ -18,14 +18,33 @@ This system manages the most prestigious awards ceremony in Scranton, PA, featur
 
 ## 🏗️ Architecture
 
-The system consists of four FastAPI microservices:
+The system consists of five FastAPI microservices:
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Nominations   │───▶│     Voting      │───▶│    Winners      │───▶│ Notifications   │
 │   Service       │    │    Service      │    │   Service       │    │   Service       │
 │   Port: 8001    │    │   Port: 8002    │    │   Port: 8003    │    │   Port: 8004    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘    └─────────────────┘
+└─────┬─────▲─────┘    └─────┬─────▲─────┘    └─────┬─────▲─────┘    └─────┬─────▲─────┘
+      │     │               │     │               │     │               │     │
+      │     │               │     │               │     │               │     │
+      │     └───────────────┴─────┴───────────────┴─────┴───────────────┴─────┘
+      │
+      │                    ┌──────────────────────────────────────┐
+      └───────────────────▶│         Azure Service Bus            │
+                           │    (via azure-servicebus SDK)        │
+                           └─────────────┬───────────────┬────────┘
+                                         │               │
+                                         │               │
+                                         │               │
+                ┌────────────────────────┘               └───────────────┐
+                │                                                      │
+                ▼                                                      ▼
+      ┌────────────────────────────┐                        ┌────────────────────────────┐
+      │   Security/Audit Service     │                        │  Other Event-Driven         │
+      │  "Dwight's Security Desk"  │                        │  Microservices (future)     │
+      │      Port: 8005           │                        └────────────────────────────┘
+      └────────────────────────────┘
 ```
 
 ### Services Overview
@@ -53,6 +72,13 @@ The system consists of four FastAPI microservices:
 - Tracks notification delivery
 - Supports manual notifications
 - **Endpoints**: `/notifications/send`, `/notifications`
+
+#### 5. **Security/Audit Service** (Port 8005) - "Dwight's Security Desk"
+- Monitors and investigates suspicious activities
+- Processes audit events from all other services
+- Tracks user activities and sensitive operations
+- Calculates risk scores for security events
+- **Endpoints**: `/audit/logs`, `/audit/suspicious`, `/audit/metrics`
 
 ## 🚀 Quick Start
 
@@ -82,6 +108,8 @@ The system consists of four FastAPI microservices:
    - Nominations: http://localhost:8001/docs
    - Voting: http://localhost:8002/docs
    - Winners: http://localhost:8003/docs
+   - Notifications: http://localhost:8004/docs
+   - Security (Dwight's Desk): http://localhost:8005/docs
    - Notifications: http://localhost:8004/docs
 
 ### Running Locally for Development
