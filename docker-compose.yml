@@ -1,0 +1,71 @@
+services:
+  nominations:
+    build: 
+      context: .
+      dockerfile: services/nominations/Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=nominations
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  voting:
+    build:
+      context: .
+      dockerfile: services/voting/Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=voting
+      - NOMINATIONS_SERVICE_URL=http://nominations:8001
+    depends_on:
+      - nominations
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  winners:
+    build:
+      context: .
+      dockerfile: services/winners/Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=winners
+      - NOMINATIONS_SERVICE_URL=http://nominations:8001
+      - VOTING_SERVICE_URL=http://voting:8002
+    depends_on:
+      - nominations
+      - voting
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  notifications:
+    build:
+      context: .
+      dockerfile: services/notifications/Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      - SERVICE_NAME=notifications
+      - WINNERS_SERVICE_URL=http://winners:8003
+    depends_on:
+      - winners
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8004/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  default:
+    name: dundie-awards-network
