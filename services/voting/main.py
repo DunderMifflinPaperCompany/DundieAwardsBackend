@@ -6,10 +6,14 @@ import os
 import requests
 
 # Add parent directory to path for shared imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+services_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(services_dir)
+sys.path.insert(0, root_dir)
 
 from shared.models import Vote, Nomination
 from shared.utils import generate_id, get_current_timestamp, SAMPLE_EMPLOYEES
+from shared.audit_utils import audit_vote_cast
 
 app = FastAPI(title="Voting Service", version="1.0.0")
 
@@ -60,6 +64,19 @@ async def create_vote(request: CreateVoteRequest):
     )
     
     votes_db[vote.id] = vote
+    
+    # Emit audit event
+    try:
+        await audit_vote_cast(
+            voter_id=vote.voter_id,
+            voter_name=vote.voter_name,
+            nomination_id=vote.nomination_id,
+            vote_id=vote.id
+        )
+    except Exception as e:
+        # Don't let audit failures break the vote
+        print(f"Failed to emit audit event: {e}")
+    
     return vote
 
 @app.get("/votes", response_model=List[Vote])

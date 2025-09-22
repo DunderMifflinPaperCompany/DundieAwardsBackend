@@ -5,10 +5,14 @@ import sys
 import os
 
 # Add parent directory to path for shared imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+services_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(services_dir)
+sys.path.insert(0, root_dir)
 
 from shared.models import Nomination, AwardCategory
 from shared.utils import generate_id, get_current_timestamp, SAMPLE_EMPLOYEES
+from shared.audit_utils import audit_nomination_submitted
 
 app = FastAPI(title="Nominations Service", version="1.0.0")
 
@@ -55,6 +59,20 @@ async def create_nomination(request: CreateNominationRequest):
     )
     
     nominations_db[nomination.id] = nomination
+    
+    # Emit audit event
+    try:
+        await audit_nomination_submitted(
+            nominator_id=nomination.nominator_id,
+            nominator_name=nomination.nominator_name,
+            employee_id=nomination.employee_id,
+            category=nomination.category.value,
+            nomination_id=nomination.id
+        )
+    except Exception as e:
+        # Don't let audit failures break the nomination
+        print(f"Failed to emit audit event: {e}")
+    
     return nomination
 
 @app.get("/nominations", response_model=List[Nomination])

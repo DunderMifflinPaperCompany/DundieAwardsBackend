@@ -66,6 +66,21 @@ services:
       timeout: 10s
       retries: 3
 
+  security:
+    build:
+      context: .
+      dockerfile: services/security/Dockerfile
+    ports:
+      - "8005:8005"
+    environment:
+      - SERVICE_NAME=security
+      - AZURE_SERVICEBUS_CONNECTION_STRING=mock://localhost
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8005/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
 networks:
   default:
     name: dundie-awards-network
