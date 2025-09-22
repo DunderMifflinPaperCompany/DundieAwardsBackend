@@ -115,11 +115,15 @@ async def get_security_metrics():
         events_by_type[event_type] = events_by_type.get(event_type, 0) + 1
     
     # Recent suspicious activity (last 24 hours, risk >= 60)
-    recent_cutoff = datetime.utcnow() - timedelta(hours=24)
-    recent_suspicious = [
-        log for log in logs 
-        if log.created_at >= recent_cutoff and log.risk_score >= 60
-    ]
+    recent_cutoff = get_current_timestamp() - timedelta(hours=24)
+    recent_suspicious = []
+    for log in logs:
+        try:
+            if log.created_at >= recent_cutoff and log.risk_score >= 60:
+                recent_suspicious.append(log)
+        except TypeError:
+            # Handle timezone mismatch - skip this log
+            continue
     recent_suspicious.sort(key=lambda x: x.risk_score, reverse=True)
     
     return SecurityMetrics(

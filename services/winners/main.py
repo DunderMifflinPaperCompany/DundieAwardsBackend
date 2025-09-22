@@ -7,7 +7,10 @@ import requests
 from collections import defaultdict
 
 # Add parent directory to path for shared imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+current_dir = os.path.dirname(os.path.abspath(__file__))
+services_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(services_dir)
+sys.path.insert(0, root_dir)
 
 from shared.models import Winner, AwardCategory
 from shared.utils import generate_id, get_current_timestamp
